@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Robothon</string>
+    <string name="access_token">"pk.eyJ1IjoidGhlcHNldWRvYXJ0aXN0IiwiYSI6ImNrNzcyZHY5dDAzM2czZnIxOWczdGtiYzIifQ.jy4ijsk1BK-XIKGl6fendA"</string>
 </resources>

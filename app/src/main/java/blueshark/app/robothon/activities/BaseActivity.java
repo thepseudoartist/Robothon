@@ -11,6 +11,8 @@ import androidx.core.app.ActivityCompat;
 
 import com.mapbox.mapboxsdk.Mapbox;
 
+import blueshark.app.robothon.R;
+
 public abstract class BaseActivity extends AppCompatActivity {
 
     // Every Activity should extend this not AppCompatActivity
@@ -18,8 +20,10 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(getLayoutResourceId());
 
+        Mapbox.getInstance(this, getString(R.string.access_token));
+
+        setContentView(getLayoutResourceId());
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                              WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
 
@@ -27,8 +31,6 @@ public abstract class BaseActivity extends AppCompatActivity {
     }
 
     private void init(){
-        Mapbox.getInstance(this, "pk.eyJ1IjoidGhlcHNldWRvYXJ0aXN0IiwiYSI6ImNrNzcyZHY5dDAzM2czZnIxOWczdGtiYzIifQ.jy4ijsk1BK-XIKGl6fendA");
-
         getPermission();
     }
 
@@ -40,19 +42,19 @@ public abstract class BaseActivity extends AppCompatActivity {
         if (permissionAccessCoarseLocationApproved) {
             boolean backgroundLocationPermissionApproved =
                     ActivityCompat.checkSelfPermission(this,
-                            Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                            Manifest.permission.ACCESS_FINE_LOCATION)
                             == PackageManager.PERMISSION_GRANTED;
 
             if (!backgroundLocationPermissionApproved) {
                 ActivityCompat.requestPermissions(this, new String[] {
-                                Manifest.permission.ACCESS_BACKGROUND_LOCATION},
+                                Manifest.permission.ACCESS_FINE_LOCATION},
                         9005);
             }
-            
+
         } else {
             ActivityCompat.requestPermissions(this, new String[] {
                             Manifest.permission.ACCESS_COARSE_LOCATION,
-                            Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                            Manifest.permission.ACCESS_FINE_LOCATION
                     }, 9005);
         }
 

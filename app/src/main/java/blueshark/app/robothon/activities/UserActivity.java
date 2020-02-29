@@ -1,35 +1,88 @@
 package blueshark.app.robothon.activities;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.util.Log;
+import android.widget.TextView;
+import android.widget.Toast;
 
-import com.airbnb.lottie.LottieAnimationView;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.anychart.AnyChart;
 import com.anychart.AnyChartView;
 import com.anychart.chart.common.dataentry.DataEntry;
 import com.anychart.chart.common.dataentry.ValueDataEntry;
 import com.anychart.charts.Cartesian;
-import com.anychart.charts.Stock;
 import com.anychart.core.cartesian.series.Line;
-import com.anychart.core.stock.Plot;
-import com.anychart.core.stock.series.Hilo;
 import com.anychart.data.Mapping;
 import com.anychart.data.Set;
-import com.anychart.data.Table;
-import com.anychart.data.TableMapping;
 import com.anychart.enums.Anchor;
 import com.anychart.enums.MarkerType;
 import com.anychart.enums.TooltipPositionMode;
 import com.anychart.graphics.vector.Stroke;
 import com.daimajia.numberprogressbar.NumberProgressBar;
+import com.mapbox.android.core.location.LocationEngine;
+import com.mapbox.android.core.location.LocationEngineCallback;
+import com.mapbox.android.core.location.LocationEngineProvider;
+import com.mapbox.android.core.location.LocationEngineResult;
+import com.mapbox.android.core.permissions.PermissionsListener;
+import com.mapbox.android.core.permissions.PermissionsManager;
+import com.mapbox.geojson.FeatureCollection;
+import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.annotations.MarkerOptions;
+import com.mapbox.mapboxsdk.camera.CameraPosition;
+import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
+import com.mapbox.mapboxsdk.geometry.LatLng;
+import com.mapbox.mapboxsdk.location.LocationComponent;
+import com.mapbox.mapboxsdk.maps.MapView;
+import com.mapbox.mapboxsdk.maps.MapboxMap;
+import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
+import com.mapbox.mapboxsdk.maps.Style;
+import com.mapbox.mapboxsdk.style.layers.LineLayer;
+import com.mapbox.mapboxsdk.style.layers.Property;
+import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
+import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 
+import java.io.InputStream;
+import java.lang.ref.WeakReference;
+import java.sql.Time;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Scanner;
 
 import blueshark.app.robothon.R;
+import blueshark.app.robothon.models.UserIDetails;
+import blueshark.app.robothon.models.UserStatusResponse;
+import blueshark.app.robothon.restapi.APIServices;
+import blueshark.app.robothon.restapi.AppClient;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
-public class UserActivity extends BaseActivity {
-    AnyChartView tempChart, tdsChart;
+public class UserActivity extends BaseActivity implements OnMapReadyCallback, LocationListener {
+    AnyChartView tdsChart;
+    Set set;
+    TextView pH, temp, tds;
+    NumberProgressBar progressBar;
+
+    MapView mapView;
+    MapboxMap mapboxMap;
+
+    List<DataEntry> seriesData = new ArrayList<>();
+
+    boolean first = true;
 
     @Override
     protected int getLayoutResourceId() {
@@ -43,15 +96,33 @@ public class UserActivity extends BaseActivity {
         init();
     }
 
-    private void init(){
-        NumberProgressBar progressBar = findViewById(R.id.num_prog);
+    private void init() {
+        progressBar = findViewById(R.id.num_prog);
         progressBar.setProgressTextVisibility(NumberProgressBar.ProgressTextVisibility.Invisible);
         progressBar.setReachedBarColor(Color.parseColor("#2e3663"));
 
+        pH = findViewById(R.id.ph_text);
+        temp = findViewById(R.id.temp_text);
+        tds = findViewById(R.id.tds_text);
+
         getChart();
+
+        Handler handler = new Handler();
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                apiCall();
+                handler.postDelayed(this, 5000);
+            }
+        };
+
+        handler.post(runnable);
+
+        mapView = findViewById(R.id.map_view);
+        mapView.getMapAsync(this);
     }
 
-    private void getChart(){
+    private void getChart() {
         tdsChart = findViewById(R.id.tds_chart);
 
         Cartesian cartesian = AnyChart.line();
@@ -67,49 +138,25 @@ public class UserActivity extends BaseActivity {
 
         cartesian.tooltip().positionMode(TooltipPositionMode.POINT);
 
-        cartesian.title("Trend of Sales of the Most Popular Products of ACME Corp.");
+        cartesian.title("Live Data");
 
-        cartesian.yAxis(0).title("Number of Bottles Sold (thousands)");
         cartesian.xAxis(0).labels().padding(5d, 5d, 5d, 5d);
 
-        List<DataEntry> seriesData = new ArrayList<>();
-        seriesData.add(new CustomDataEntry("1986", 3.6, 2.3, 2.8));
-        seriesData.add(new CustomDataEntry("1987", 7.1, 4.0, 4.1));
-        seriesData.add(new CustomDataEntry("1988", 8.5, 6.2, 5.1));
-        seriesData.add(new CustomDataEntry("1989", 9.2, 11.8, 6.5));
-        seriesData.add(new CustomDataEntry("1990", 10.1, 13.0, 12.5));
-        seriesData.add(new CustomDataEntry("1991", 11.6, 13.9, 18.0));
-        seriesData.add(new CustomDataEntry("1992", 16.4, 18.0, 21.0));
-        seriesData.add(new CustomDataEntry("1993", 18.0, 23.3, 20.3));
-        seriesData.add(new CustomDataEntry("1994", 13.2, 24.7, 19.2));
-        seriesData.add(new CustomDataEntry("1995", 12.0, 18.0, 14.4));
-        seriesData.add(new CustomDataEntry("1996", 3.2, 15.1, 9.2));
-        seriesData.add(new CustomDataEntry("1997", 4.1, 11.3, 5.9));
-        seriesData.add(new CustomDataEntry("1998", 6.3, 14.2, 5.2));
-        seriesData.add(new CustomDataEntry("1999", 9.4, 13.7, 4.7));
-        seriesData.add(new CustomDataEntry("2000", 11.5, 9.9, 4.2));
-        seriesData.add(new CustomDataEntry("2001", 13.5, 12.1, 1.2));
-        seriesData.add(new CustomDataEntry("2002", 14.8, 13.5, 5.4));
-        seriesData.add(new CustomDataEntry("2003", 16.6, 15.1, 6.3));
-        seriesData.add(new CustomDataEntry("2004", 18.1, 17.9, 8.9));
-        seriesData.add(new CustomDataEntry("2005", 17.0, 18.9, 10.1));
-        seriesData.add(new CustomDataEntry("2006", 16.6, 20.3, 11.5));
-        seriesData.add(new CustomDataEntry("2007", 14.1, 20.7, 12.2));
-        seriesData.add(new CustomDataEntry("2008", 15.7, 21.6, 10));
-        seriesData.add(new CustomDataEntry("2009", 12.0, 22.5, 8.9));
+        seriesData.add(new CustomDataEntry(String.valueOf(System.currentTimeMillis()), 25, 200, 7.0));
 
-        Set set = Set.instantiate();
+        set = Set.instantiate();
         set.data(seriesData);
         Mapping series1Mapping = set.mapAs("{ x: 'x', value: 'value' }");
         Mapping series2Mapping = set.mapAs("{ x: 'x', value: 'value2' }");
         Mapping series3Mapping = set.mapAs("{ x: 'x', value: 'value3' }");
 
         Line series1 = cartesian.line(series1Mapping);
-        series1.name("Brandy");
+        series1.name("Temperature");
         series1.hovered().markers().enabled(true);
         series1.hovered().markers()
                 .type(MarkerType.CIRCLE)
                 .size(4d);
+
         series1.tooltip()
                 .position("right")
                 .anchor(Anchor.LEFT_CENTER)
@@ -117,11 +164,12 @@ public class UserActivity extends BaseActivity {
                 .offsetY(5d);
 
         Line series2 = cartesian.line(series2Mapping);
-        series2.name("Whiskey");
+        series2.name("TDS");
         series2.hovered().markers().enabled(true);
         series2.hovered().markers()
                 .type(MarkerType.CIRCLE)
                 .size(4d);
+
         series2.tooltip()
                 .position("right")
                 .anchor(Anchor.LEFT_CENTER)
@@ -129,7 +177,7 @@ public class UserActivity extends BaseActivity {
                 .offsetY(5d);
 
         Line series3 = cartesian.line(series3Mapping);
-        series3.name("Tequila");
+        series3.name("pH");
         series3.hovered().markers().enabled(true);
         series3.hovered().markers()
                 .type(MarkerType.CIRCLE)
@@ -144,9 +192,94 @@ public class UserActivity extends BaseActivity {
         cartesian.legend().enabled(true);
         cartesian.legend().fontSize(13d);
         cartesian.legend().padding(0d, 0d, 10d, 0d);
-        cartesian.background().fill(new String[]{"#07091E","#07091E", "#1a2254"}, 90, true, 100);
+        cartesian.background().fill(new String[]{"#07091E", "#07091E", "#1a2254"}, 90, true, 100);
+        cartesian.autoRedraw(true);
+        cartesian.xAxis(0).labels().enabled(false);
 
+        tdsChart.setZoomEnabled(true);
         tdsChart.setChart(cartesian);
+    }
+
+    private void addData(UserStatusResponse response) {
+        set.append("{x: " + System.currentTimeMillis() + ", value: " + response.temp + ", value2: " + response.tds + ", value3: " + response.pH + "}");
+        seriesData.add(new DataEntry());
+
+        if (seriesData.size() >= 10) {
+            for(int i = 0; i < 6; i++) set.remove(i);
+        }
+
+        if (first) {
+            set.remove(0);
+            first = false;
+        }
+    }
+
+    @Override
+    public void onMapReady(@NonNull MapboxMap mapboxMap) {
+        this.mapboxMap = mapboxMap;
+        mapboxMap.setStyle(Style.DARK, style -> new LoadGeoJson(UserActivity.this, 0).execute());
+
+        Gps();
+    }
+
+    private void drawLines(@NonNull FeatureCollection featureCollection) {
+        if (mapboxMap != null) {
+
+            mapboxMap.getStyle(style -> {
+                if (featureCollection.features() != null) {
+                    if (featureCollection.features().size() > 0) {
+                        style.addSource(new GeoJsonSource("line-source", featureCollection));
+
+                        style.addLayer(new LineLayer("linelayer", "line-source")
+                                .withProperties(PropertyFactory.lineCap(Property.LINE_CAP_SQUARE),
+                                        PropertyFactory.lineJoin(Property.LINE_JOIN_MITER),
+                                        PropertyFactory.lineOpacity(.7f),
+                                        PropertyFactory.lineWidth(7f),
+                                        PropertyFactory.lineColor(Color.parseColor("#3bb2d0"))));
+                    }
+                }
+            });
+        }
+    }
+
+    private static class LoadGeoJson extends AsyncTask<Void, Void, FeatureCollection> {
+
+        private WeakReference<UserActivity> weakReference;
+        private int i;
+
+        LoadGeoJson(UserActivity activity, int i) {
+            this.weakReference = new WeakReference<>(activity);
+        }
+
+        @Override
+        protected FeatureCollection doInBackground(Void... voids) {
+            try {
+                UserActivity activity = weakReference.get();
+                if (activity != null) {
+                    InputStream inputStream = activity.getAssets().open("user1.geojson");
+                    return FeatureCollection.fromJson(convertStreamToString(inputStream));
+                }
+            } catch (Exception exception) {
+                Log.e("Exception GeoJSON: %s", exception.toString());
+            }
+
+            return null;
+        }
+
+        static String convertStreamToString(InputStream is) {
+            Scanner scanner = new Scanner(is).useDelimiter("\\A");
+            return scanner.hasNext() ? scanner.next() : "";
+        }
+
+        @Override
+        protected void onPostExecute(@Nullable FeatureCollection featureCollection) {
+            super.onPostExecute(featureCollection);
+            UserActivity activity = weakReference.get();
+
+            if (activity != null && featureCollection != null) {
+                activity.drawLines(featureCollection);
+            }
+        }
     }
 
     private class CustomDataEntry extends ValueDataEntry {
@@ -158,5 +291,127 @@ public class UserActivity extends BaseActivity {
             setValue("value3", value3);
         }
 
+    }
+
+    private void apiCall() {
+
+        UserIDetails details = new UserIDetails();
+        details.uId = 1;
+
+        APIServices apiServices = AppClient.getInstance().createService(APIServices.class);
+        Call<UserStatusResponse> responseCall = apiServices.getUserStatus(details);
+
+        responseCall.enqueue(new Callback<UserStatusResponse>() {
+            @Override
+            public void onResponse(Call<UserStatusResponse> call, Response<UserStatusResponse> response) {
+
+                if (response.isSuccessful() && response.body() != null) {
+                    addData(response.body());
+
+                    pH.setText((int) response.body().pH + " ");
+                    temp.setText((int) response.body().temp + "°C");
+                    tds.setText((int) response.body().tds + " NTU");
+                    progressBar.setProgress((int) response.body().pH);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<UserStatusResponse> call, Throwable t) {
+
+            }
+        });
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        mapView.onResume();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        mapView.onStart();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        mapView.onStop();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        mapView.onPause();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        mapView.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onLowMemory() {
+        super.onLowMemory();
+        mapView.onLowMemory();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mapView.onDestroy();
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+        CameraPosition position = new CameraPosition.Builder()
+                .target(latLng)
+                .zoom(15)
+                .bearing(180)
+                .tilt(30)
+                .build();
+
+        mapboxMap.animateCamera(CameraUpdateFactory.newCameraPosition(position), 7000);
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+
+    }
+
+
+    private void Gps() {
+        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, this);
+        Criteria criteria = new Criteria();
+        String bestProvider = locationManager.getBestProvider(criteria, true);
+
+        Location location = locationManager.getLastKnownLocation(bestProvider);
+
+        if (location == null) {
+            Toast.makeText(getApplicationContext(), "GPS signal not found", Toast.LENGTH_LONG).show();
+        }
+
+        if (location != null) {
+            onLocationChanged(location);
+        }
     }
 }
