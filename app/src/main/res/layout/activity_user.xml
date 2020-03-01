@@ -57,7 +57,7 @@
                 android:fontFamily="@font/alegreya_sans_bold"
                 android:text="Drinkable"
                 android:textColor="#8b9b62"
-                android:textSize="38sp" />
+                android:textSize="28sp" />
 
             <LinearLayout
                 android:id="@+id/ph_lay"
@@ -71,96 +71,74 @@
                 android:background="@drawable/drawable_gradient_card_bg"
                 android:orientation="vertical">
 
-                <LinearLayout
+                <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:layout_marginTop="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="center"
+                        android:layout_alignParentStart="true"
                         android:layout_marginStart="16dp"
-                        android:layout_marginTop="16dp"
                         android:layout_marginEnd="16dp"
+                        android:layout_marginBottom="4dp"
                         android:fontFamily="@font/roboto_slab"
                         android:text="pH"
                         android:textColor="@android:color/white"
-                        android:textSize="38sp"
+                        android:textSize="28sp"
                         android:textStyle="bold" />
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
+                    <TextView
+                        android:id="@+id/ph_text"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical">
+                        android:layout_alignParentEnd="true"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginEnd="16dp"
+                        android:layout_marginBottom="4dp"
+                        android:fontFamily="@font/montserrat"
+                        android:text="Acidic"
+                        android:textColor="@android:color/white"
+                        android:textSize="24sp" />
+                </RelativeLayout>
 
-                        <TextView
-                            android:id="@+id/ph_text"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="end"
-                            android:layout_marginStart="16dp"
-                            android:layout_marginTop="20dp"
-                            android:layout_marginEnd="24dp"
-                            android:fontFamily="@font/montserrat"
-                            android:text="8.0"
-                            android:textColor="@android:color/white"
-                            android:textSize="24sp" />
-
-                        <com.daimajia.numberprogressbar.NumberProgressBar
-                            android:id="@+id/num_prog"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:layout_marginStart="16dp"
-                            android:layout_marginEnd="16dp"
-                            app:progress_current="8"
-                            app:progress_max="14"
-                            app:progress_reached_bar_height="3.5dp"
-                            app:progress_text_offset="1dp"
-                            app:progress_text_size="14sp"
-                            app:progress_text_visibility="visible"
-                            app:progress_unreached_bar_height="1.0dp"
-                            app:progress_unreached_color="#00661CE6" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_marginTop="16dp"
+                <RelativeLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:layout_height="wrap_content">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
                         android:layout_marginStart="16dp"
                         android:layout_marginEnd="16dp"
                         android:layout_marginBottom="4dp"
                         android:fontFamily="@font/roboto_slab"
                         android:text="Temperature"
                         android:textColor="@android:color/white"
-                        android:textSize="38sp"
+                        android:textSize="28sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/temp_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
                         android:layout_marginStart="16dp"
+                        android:layout_marginTop="4dp"
                         android:layout_marginEnd="16dp"
-                        android:layout_marginBottom="16dp"
+                        android:layout_marginBottom="4dp"
                         android:fontFamily="@font/montserrat"
                         android:text="14°C"
                         android:textColor="@android:color/white"
                         android:textSize="24sp" />
-                </LinearLayout>
+                </RelativeLayout>
 
                 <RelativeLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:orientation="horizontal">
+                    android:layout_height="wrap_content">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -172,7 +150,7 @@
                         android:fontFamily="@font/roboto_slab"
                         android:text="TDS"
                         android:textColor="@android:color/white"
-                        android:textSize="38sp"
+                        android:textSize="28sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -181,7 +159,40 @@
                         android:layout_height="wrap_content"
                         android:layout_alignParentEnd="true"
                         android:layout_marginStart="16dp"
-                        android:layout_marginTop="24dp"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginEnd="16dp"
+                        android:layout_marginBottom="4dp"
+                        android:fontFamily="@font/montserrat"
+                        android:text="1 mg/L"
+                        android:textColor="@android:color/white"
+                        android:textSize="24sp" />
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="16dp"
+                        android:layout_marginBottom="4dp"
+                        android:fontFamily="@font/roboto_slab"
+                        android:text="Turbidity"
+                        android:textColor="@android:color/white"
+                        android:textSize="28sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/turb_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginTop="4dp"
                         android:layout_marginEnd="16dp"
                         android:layout_marginBottom="4dp"
                         android:fontFamily="@font/montserrat"
@@ -189,7 +200,6 @@
                         android:textColor="@android:color/white"
                         android:textSize="24sp" />
                 </RelativeLayout>
-
             </LinearLayout>
 
             <LinearLayout
@@ -212,14 +222,30 @@
 
             </LinearLayout>
 
-            <com.mapbox.mapboxsdk.maps.MapView
-                android:id="@+id/map_view"
-                android:layout_below="@id/graph"
+            <LinearLayout
+                android:id="@+id/get_loc"
                 android:layout_width="match_parent"
-                android:layout_height="500dp"
-                android:layout_marginBottom="16dp"/>
+                android:layout_height="wrap_content"
+                android:layout_below="@id/graph"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="24dp"
+                android:layout_marginBottom="40dp"
+                android:background="@drawable/drawable_gradient_card_bg"
+                android:orientation="vertical">
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="8dp"
+                    android:fontFamily="@font/alegreya_sans_thin"
+                    android:text="Open Water Path"
+                    android:textAlignment="center"
+                    android:textColor="@android:color/white"
+                    android:textSize="28sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
         </RelativeLayout>
-
     </androidx.core.widget.NestedScrollView>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

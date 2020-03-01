@@ -1,6 +1,8 @@
 package blueshark.app.robothon.activities;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Criteria;
@@ -11,6 +13,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -71,14 +74,15 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class UserActivity extends BaseActivity implements OnMapReadyCallback, LocationListener {
+public class UserActivity extends BaseActivity {
     AnyChartView tdsChart;
     Set set;
-    TextView pH, temp, tds;
-    NumberProgressBar progressBar;
+    TextView pH, temp, tds, turb, water_type;
 
-    MapView mapView;
-    MapboxMap mapboxMap;
+    AlertDialog.Builder builder;
+    AlertDialog dialog;
+
+    TextView alert;
 
     List<DataEntry> seriesData = new ArrayList<>();
 
@@ -97,15 +101,27 @@ public class UserActivity extends BaseActivity implements OnMapReadyCallback, Lo
     }
 
     private void init() {
-        progressBar = findViewById(R.id.num_prog);
-        progressBar.setProgressTextVisibility(NumberProgressBar.ProgressTextVisibility.Invisible);
-        progressBar.setReachedBarColor(Color.parseColor("#2e3663"));
-
         pH = findViewById(R.id.ph_text);
         temp = findViewById(R.id.temp_text);
         tds = findViewById(R.id.tds_text);
+        turb = findViewById(R.id.turb_text);
+        water_type = findViewById(R.id.water_top);
+
+        findViewById(R.id.get_loc).setOnClickListener(v -> {
+            Intent intent = new Intent(UserActivity.this, MapActivity.class);
+            startActivity(intent);
+        });
+
+        water_type.setOnClickListener(v -> dialog.show());
 
         getChart();
+
+        builder = new AlertDialog.Builder(this);
+        View view = getLayoutInflater().inflate(R.layout.alert_dialog, null);
+        alert = view.findViewById(R.id.alert);
+        builder.setView(view);
+        dialog = builder.create();
+        dialog.setCancelable(true);
 
         Handler handler = new Handler();
         Runnable runnable = new Runnable() {
@@ -117,9 +133,6 @@ public class UserActivity extends BaseActivity implements OnMapReadyCallback, Lo
         };
 
         handler.post(runnable);
-
-        mapView = findViewById(R.id.map_view);
-        mapView.getMapAsync(this);
     }
 
     private void getChart() {
@@ -142,13 +155,12 @@ public class UserActivity extends BaseActivity implements OnMapReadyCallback, Lo
 
         cartesian.xAxis(0).labels().padding(5d, 5d, 5d, 5d);
 
-        seriesData.add(new CustomDataEntry(String.valueOf(System.currentTimeMillis()), 25, 200, 7.0));
+        seriesData.add(new CustomDataEntry(String.valueOf(System.currentTimeMillis()), 25, 200));
 
         set = Set.instantiate();
         set.data(seriesData);
         Mapping series1Mapping = set.mapAs("{ x: 'x', value: 'value' }");
         Mapping series2Mapping = set.mapAs("{ x: 'x', value: 'value2' }");
-        Mapping series3Mapping = set.mapAs("{ x: 'x', value: 'value3' }");
 
         Line series1 = cartesian.line(series1Mapping);
         series1.name("Temperature");
@@ -176,19 +188,6 @@ public class UserActivity extends BaseActivity implements OnMapReadyCallback, Lo
                 .offsetX(5d)
                 .offsetY(5d);
 
-        Line series3 = cartesian.line(series3Mapping);
-        series3.name("pH");
-        series3.hovered().markers().enabled(true);
-        series3.hovered().markers()
-                .type(MarkerType.CIRCLE)
-                .size(4d);
-
-        series3.tooltip()
-                .position("right")
-                .anchor(Anchor.LEFT_CENTER)
-                .offsetX(5d)
-                .offsetY(5d);
-
         cartesian.legend().enabled(true);
         cartesian.legend().fontSize(13d);
         cartesian.legend().padding(0d, 0d, 10d, 0d);
@@ -201,12 +200,7 @@ public class UserActivity extends BaseActivity implements OnMapReadyCallback, Lo
     }
 
     private void addData(UserStatusResponse response) {
-        set.append("{x: " + System.currentTimeMillis() + ", value: " + response.temp + ", value2: " + response.tds + ", value3: " + response.pH + "}");
-        seriesData.add(new DataEntry());
-
-        if (seriesData.size() >= 10) {
-            for(int i = 0; i < 6; i++) set.remove(i);
-        }
+        set.append("{x: " + System.currentTimeMillis() + ", value: " + response.temp + ", value2: " + response.tds + "}");
 
         if (first) {
             set.remove(0);
@@ -214,81 +208,12 @@ public class UserActivity extends BaseActivity implements OnMapReadyCallback, Lo
         }
     }
 
-    @Override
-    public void onMapReady(@NonNull MapboxMap mapboxMap) {
-        this.mapboxMap = mapboxMap;
-        mapboxMap.setStyle(Style.DARK, style -> new LoadGeoJson(UserActivity.this, 0).execute());
-
-        Gps();
-    }
-
-    private void drawLines(@NonNull FeatureCollection featureCollection) {
-        if (mapboxMap != null) {
-
-            mapboxMap.getStyle(style -> {
-                if (featureCollection.features() != null) {
-                    if (featureCollection.features().size() > 0) {
-                        style.addSource(new GeoJsonSource("line-source", featureCollection));
-
-                        style.addLayer(new LineLayer("linelayer", "line-source")
-                                .withProperties(PropertyFactory.lineCap(Property.LINE_CAP_SQUARE),
-                                        PropertyFactory.lineJoin(Property.LINE_JOIN_MITER),
-                                        PropertyFactory.lineOpacity(.7f),
-                                        PropertyFactory.lineWidth(7f),
-                                        PropertyFactory.lineColor(Color.parseColor("#3bb2d0"))));
-                    }
-                }
-            });
-        }
-    }
-
-    private static class LoadGeoJson extends AsyncTask<Void, Void, FeatureCollection> {
-
-        private WeakReference<UserActivity> weakReference;
-        private int i;
-
-        LoadGeoJson(UserActivity activity, int i) {
-            this.weakReference = new WeakReference<>(activity);
-        }
-
-        @Override
-        protected FeatureCollection doInBackground(Void... voids) {
-            try {
-                UserActivity activity = weakReference.get();
-                if (activity != null) {
-                    InputStream inputStream = activity.getAssets().open("user1.geojson");
-                    return FeatureCollection.fromJson(convertStreamToString(inputStream));
-                }
-            } catch (Exception exception) {
-                Log.e("Exception GeoJSON: %s", exception.toString());
-            }
-
-            return null;
-        }
-
-        static String convertStreamToString(InputStream is) {
-            Scanner scanner = new Scanner(is).useDelimiter("\\A");
-            return scanner.hasNext() ? scanner.next() : "";
-        }
-
-        @Override
-        protected void onPostExecute(@Nullable FeatureCollection featureCollection) {
-            super.onPostExecute(featureCollection);
-            UserActivity activity = weakReference.get();
-
-            if (activity != null && featureCollection != null) {
-                activity.drawLines(featureCollection);
-            }
-        }
-    }
-
     private class CustomDataEntry extends ValueDataEntry {
 
-        CustomDataEntry(String x, Number value, Number value2, Number value3) {
+        CustomDataEntry(String x, Number value, Number value2) {
             super(x, value);
 
             setValue("value2", value2);
-            setValue("value3", value3);
         }
 
     }
@@ -308,10 +233,30 @@ public class UserActivity extends BaseActivity implements OnMapReadyCallback, Lo
                 if (response.isSuccessful() && response.body() != null) {
                     addData(response.body());
 
-                    pH.setText((int) response.body().pH + " ");
-                    temp.setText((int) response.body().temp + "°C");
-                    tds.setText((int) response.body().tds + " NTU");
-                    progressBar.setProgress((int) response.body().pH);
+                    pH.setText(response.body().pH + " ");
+                    temp.setText(response.body().temp + "°C");
+                    tds.setText(response.body().tds + " mg/L");
+                    turb.setText(response.body().turbidity + " NTU");
+
+                    switch (response.body().level) {
+                        case 0:
+                            water_type.setText("Drinkable");
+                            water_type.setTextColor(Color.parseColor("#8b9b62"));
+                            alert.setText("You can drink this water without any treatment.");
+                            break;
+
+                        case 1:
+                            water_type.setText("Slightly Contaminated");
+                            water_type.setTextColor(Color.parseColor("#FFFFEB3B"));
+                            alert.setText("Boil the water before drinking");
+                            break;
+
+                        case 2:
+                            water_type.setText("Highly Contaminated");
+                            water_type.setTextColor(getColor(android.R.color.holo_red_dark));
+                            alert.setText("Water isn't suitable for drinking and agricultural purposes.");
+                            break;
+                    }
                 }
             }
 
@@ -320,98 +265,5 @@ public class UserActivity extends BaseActivity implements OnMapReadyCallback, Lo
 
             }
         });
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        mapView.onResume();
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        mapView.onStart();
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        mapView.onStop();
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        mapView.onPause();
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        mapView.onSaveInstanceState(outState);
-    }
-
-    @Override
-    public void onLowMemory() {
-        super.onLowMemory();
-        mapView.onLowMemory();
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        mapView.onDestroy();
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        CameraPosition position = new CameraPosition.Builder()
-                .target(latLng)
-                .zoom(15)
-                .bearing(180)
-                .tilt(30)
-                .build();
-
-        mapboxMap.animateCamera(CameraUpdateFactory.newCameraPosition(position), 7000);
-    }
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-
-    }
-
-
-    private void Gps() {
-        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-
-        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, this);
-        Criteria criteria = new Criteria();
-        String bestProvider = locationManager.getBestProvider(criteria, true);
-
-        Location location = locationManager.getLastKnownLocation(bestProvider);
-
-        if (location == null) {
-            Toast.makeText(getApplicationContext(), "GPS signal not found", Toast.LENGTH_LONG).show();
-        }
-
-        if (location != null) {
-            onLocationChanged(location);
-        }
     }
 }
